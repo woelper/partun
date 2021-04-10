@@ -10,3 +10,10 @@ edition = "2018"
 zip = "0.5.3"
 clap = "*"
 rand = "*"
+
+[profile.release]
+opt-level = 'z'  # Optimize for size.
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = "symbols"
