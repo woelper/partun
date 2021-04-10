@@ -1,3 +1,4 @@
+cargo-features = ["strip"]
 [package]
 name = "partun"
 version = "0.1.0"
