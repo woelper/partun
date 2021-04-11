@@ -73,16 +73,16 @@ fn main() {
     if do_random {
         
         // Make sure we don't include directories for selecting a random file
+        // For that reason, filter indices to exclude directories.
         indices = indices.into_iter().filter(|i| {
             let zipfile = &zip_archive.by_index(*i).unwrap();
             !zipfile.name().ends_with("/")
         })
-        .collect::<Vec<_>>();
-
+        .collect();
+        // select one of the indices
         indices = vec![indices.choose(&mut rand::thread_rng()).unwrap_or(&0).clone()];
     }
     
-    // for i in 0..zip_archive.len() {
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
         let mut outpath = file.sanitized_name();
@@ -101,21 +101,18 @@ fn main() {
         }
 
         if (&*file.name()).ends_with('/') {
-            // println!("File {} extracted to \"{}\"", i, outpath.as_path().display());
                 fs::create_dir_all(&outpath).unwrap();
         } else {
-            // println!("File {} extracted to \"{}\" ({} bytes)", i, outpath.as_path().display(), file.size());
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
                     fs::create_dir_all(&p).unwrap();
                 }
             }
             
+            println!("{}", outpath.as_path().display());
             if let Some(r) = rename {
                 outpath = PathBuf::from(r);
             }
-
-            println!("{}", outpath.as_path().display());
 
 
             let mut outfile = fs::File::create(&outpath).unwrap();
