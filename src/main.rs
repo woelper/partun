@@ -20,6 +20,12 @@ fn main() {
          .help("Do not extract file containing this string")
          .takes_value(true)
         )
+    .arg(Arg::with_name("output")
+         .short("o")
+         .long("output")
+         .help("extract files to this location")
+         .takes_value(true)
+        )
     .arg(Arg::with_name("rename")
         //  .short("rn")
          .long("rename")
@@ -50,6 +56,7 @@ fn main() {
     let rename = matches.value_of("rename");
     let do_ignorepath = matches.is_present("ignorepath");
     let do_random = matches.is_present("random");
+    let out_path = PathBuf::from(matches.value_of("output").unwrap_or("."));
 
     let archive_path = std::path::Path::new(archive);
     let zipfile = fs::File::open(&archive_path).unwrap();
@@ -85,7 +92,7 @@ fn main() {
     
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
-        let mut outpath = file.sanitized_name();
+        let mut outpath = out_path.join(file.sanitized_name());
 
         // If ignorepath is set, turn the filename into the path
         if do_ignorepath {

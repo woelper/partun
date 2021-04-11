@@ -21,6 +21,7 @@ FLAGS:
 OPTIONS:
     -e, --exclude <exclude>    Do not extract file containing this string
     -f, --filter <filter>      Only extract file containing this string
+    -o, --output <output>      extract files to this location
         --rename <rename>      Rename EVERY file to this string. Useful in scripts with the random option
 
 ARGS:
