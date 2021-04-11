@@ -19,8 +19,9 @@ FLAGS:
     -V, --version       Prints version information
 
 OPTIONS:
-    -f, --filter <filter>    Only extract file containing this string
-        --rename <rename>    Rename EVERY file to this string. Useful in scripts with the random option
+    -e, --exclude <exclude>    Do not extract file containing this string
+    -f, --filter <filter>      Only extract file containing this string
+        --rename <rename>      Rename EVERY file to this string. Useful in scripts with the random option
 
 ARGS:
     <ZIP>    Sets the input file to use
