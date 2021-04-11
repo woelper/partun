@@ -14,6 +14,12 @@ fn main() {
          .help("Only extract file containing this string")
          .takes_value(true)
         )
+    .arg(Arg::with_name("exclude")
+         .short("e")
+         .long("exclude")
+         .help("Do not extract file containing this string")
+         .takes_value(true)
+        )
     .arg(Arg::with_name("rename")
         //  .short("rn")
          .long("rename")
@@ -40,28 +46,39 @@ fn main() {
 
     let archive = matches.value_of("ZIP").unwrap();
     let filter = matches.value_of("filter");
+    let exclude = matches.value_of("exclude");
     let rename = matches.value_of("rename");
     let do_ignorepath = matches.is_present("ignorepath");
     let do_random = matches.is_present("random");
-
 
     let archive_path = std::path::Path::new(archive);
     let zipfile = fs::File::open(&archive_path).unwrap();
 
     let mut zip_archive = zip::ZipArchive::new(zipfile).unwrap();
 
-    let mut indices = (0..zip_archive.len()).collect::<Vec<_>>().into_iter().filter(|x| {
-        //if a filter flag is passed
-        if let Some(f) = filter {
-            let file = zip_archive.by_index(*x).unwrap();
-            return file.name().contains(f)
-        }
-        else {
-            return true
-        }
-    }).collect::<Vec<_>>();
+    let mut indices = (0..zip_archive.len())
+        .collect::<Vec<_>>()
+        .into_iter()
+        .filter(|i| {
+            let zipfile = &zip_archive.by_index(*i).unwrap();
+            zipfile.name().contains(filter.unwrap_or_default()) && 
+            {if exclude.is_none() {true} else {
+                !zipfile.name().contains(exclude.unwrap_or_default())
+            }}
+        })
+
+
+    .collect::<Vec<_>>();
 
     if do_random {
+        
+        // Make sure we don't include directories for selecting a random file
+        indices = indices.into_iter().filter(|i| {
+            let zipfile = &zip_archive.by_index(*i).unwrap();
+            !zipfile.name().ends_with("/")
+        })
+        .collect::<Vec<_>>();
+
         indices = vec![indices.choose(&mut rand::thread_rng()).unwrap_or(&0).clone()];
     }
     
@@ -69,13 +86,6 @@ fn main() {
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
         let mut outpath = file.sanitized_name();
-
-        // Make sure only filtered items pass
-        if let Some(f) = filter {
-            if !file.name().contains(f) {
-                continue;
-            }
-        }
 
         // If ignorepath is set, turn the filename into the path
         if do_ignorepath {
