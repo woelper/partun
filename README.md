@@ -21,7 +21,7 @@ FLAGS:
     -V, --version       Prints version information
 
 OPTIONS:
-    -e, --exclude <exclude>    Do not extract file containing this string
+    -e, --exclude <exclude>    Do not extract file containing this string. Use commas for multiple exclusions.
     -f, --filter <filter>      Only extract file containing this string
     -o, --output <output>      extract files to this location
         --rename <rename>      Rename EVERY file to this string. Useful in scripts with the random option

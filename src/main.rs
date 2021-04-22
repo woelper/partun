@@ -1,11 +1,10 @@
-use std::io;
-use std::fs;
-use std::path::PathBuf;
-use clap::{Arg, App};
+use clap::{App, Arg};
 use rand::seq::SliceRandom;
+use std::fs;
+use std::io;
+use std::path::PathBuf;
 
 fn main() {
-
     let matches = App::new("Partun")
     .about("Extracts zip files partially")
     .arg(Arg::with_name("filter")
@@ -17,7 +16,7 @@ fn main() {
     .arg(Arg::with_name("exclude")
          .short("e")
          .long("exclude")
-         .help("Do not extract file containing this string")
+         .help("Do not extract file containing this string. Use commas for multiple exclusions.")
          .takes_value(true)
         )
     .arg(Arg::with_name("output")
@@ -49,7 +48,6 @@ fn main() {
         )
     .get_matches();
 
-
     let archive = matches.value_of("ZIP").unwrap();
     let filter = matches.value_of("filter");
     let exclude = matches.value_of("exclude");
@@ -68,28 +66,34 @@ fn main() {
         .into_iter()
         .filter(|i| {
             let zipfile = &zip_archive.by_index(*i).unwrap();
-            zipfile.name().contains(filter.unwrap_or_default()) && 
-            {if exclude.is_none() {true} else {
-                !zipfile.name().contains(exclude.unwrap_or_default())
-            }}
+            zipfile.name().contains(filter.unwrap_or_default()) && {
+                if exclude.is_none() {
+                    true
+                } else {
+                    // !zipfile.name().contains(exclude.unwrap_or_default())
+                    !exclude.unwrap_or_default().split(",").any(|e| zipfile.name().contains(e))
+                }
+            }
         })
-
-
-    .collect::<Vec<_>>();
+        .collect::<Vec<_>>();
 
     if do_random {
-        
         // Make sure we don't include directories for selecting a random file
         // For that reason, filter indices to exclude directories.
-        indices = indices.into_iter().filter(|i| {
-            let zipfile = &zip_archive.by_index(*i).unwrap();
-            !zipfile.name().ends_with("/")
-        })
-        .collect();
+        indices = indices
+            .into_iter()
+            .filter(|i| {
+                let zipfile = &zip_archive.by_index(*i).unwrap();
+                !zipfile.name().ends_with("/")
+            })
+            .collect();
         // select one of the indices
-        indices = vec![indices.choose(&mut rand::thread_rng()).unwrap_or(&0).clone()];
+        indices = vec![indices
+            .choose(&mut rand::thread_rng())
+            .unwrap_or(&0)
+            .clone()];
     }
-    
+
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
         let mut outpath = out_path.join(file.sanitized_name());
@@ -108,19 +112,18 @@ fn main() {
         }
 
         if (&*file.name()).ends_with('/') {
-                fs::create_dir_all(&outpath).unwrap();
+            fs::create_dir_all(&outpath).unwrap();
         } else {
             if let Some(p) = outpath.parent() {
                 if !p.exists() {
                     fs::create_dir_all(&p).unwrap();
                 }
             }
-            
+
             println!("{}", outpath.as_path().display());
             if let Some(r) = rename {
                 outpath = PathBuf::from(r);
             }
-
 
             let mut outfile = fs::File::create(&outpath).unwrap();
             io::copy(&mut file, &mut outfile).unwrap();
