@@ -87,11 +87,10 @@ fn main() {
                 !zipfile.name().ends_with("/")
             })
             .collect();
-        // select one of the indices
-        indices = vec![indices
-            .choose(&mut rand::thread_rng())
-            .unwrap_or(&0)
-            .clone()];
+        // select one of the indices - if there is any
+        if let Some(index) = indices.choose(&mut rand::thread_rng()) {
+            indices = vec![*index];
+        }
     }
 
     for i in indices {
