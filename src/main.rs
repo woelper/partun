@@ -138,3 +138,32 @@ fn main() {
         }
     }
 }
+
+
+#[test]
+fn extract() {
+    use std::process::Command;
+    #[cfg(unix)]
+    {
+        // create some folders
+        Command::new("cargo").arg("build").status().unwrap();
+        Command::new("mkdir").arg("ziptest").status().unwrap();
+        Command::new("touch").arg("ziptest/foo").status().unwrap();
+        Command::new("touch").arg("ziptest/bar").status().unwrap();
+        Command::new("touch").arg("ziptest/baz").status().unwrap();
+        Command::new("zip").args(&["-r", "ziptest.zip", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+
+        Command::new("target/debug/partun").args(&["-r", "ziptest.zip"]).status().unwrap();
+        
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+
+        Command::new("target/debug/partun").args(&["-r", "-e", "foo,bar,baz", "ziptest.zip"]).status().unwrap();
+
+
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
+
+
+    }
+}
