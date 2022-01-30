@@ -12,34 +12,45 @@ fn main() {
          .long("filter")
          .help("Only extract file containing this string")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::with_name("exclude")
          .short("e")
          .long("exclude")
          .help("Do not extract file containing this string. Use commas for multiple exclusions.")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::with_name("output")
          .short("o")
          .long("output")
          .help("extract files to this location")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::with_name("rename")
         //  .short("rn")
          .long("rename")
          .help("Rename EVERY file to this string. Useful in scripts with the random option")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::with_name("ignorepath")
          .short("i")
          .long("ignorepath")
          .help("Extract all files to current dir, ignoring all paths")
+         .conflicts_with("list")
         )
     .arg(Arg::with_name("random")
          .short("r")
          .long("random")
          .help("Extract only a random file. This can be combined with the filter flag.")
+         .conflicts_with("list")
+        )
+    .arg(Arg::with_name("list")
+         .short("l")
+         .long("list")
+         .help("List files instead of extracting, one per line.")
         )
     .arg(Arg::with_name("ZIP")
          .help("Sets the input file to use")
@@ -61,8 +72,14 @@ fn main() {
 
     let mut zip_archive = zip::ZipArchive::new(zipfile).unwrap();
 
+    if matches.is_present("list") {
+        for filename in zip_archive.file_names() {
+            println!("{}", filename)
+        }
+        return;
+    };
+
     let mut indices = (0..zip_archive.len())
-        .collect::<Vec<_>>()
         .into_iter()
         .filter(|i| {
             let zipfile = &zip_archive.by_index(*i).unwrap();
@@ -95,7 +112,7 @@ fn main() {
 
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
-        let mut outpath = out_path.join(file.sanitized_name());
+        let mut outpath = out_path.join(file.mangled_name());
 
         // If ignorepath is set, turn the filename into the path
         if do_ignorepath {
