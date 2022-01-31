@@ -9,7 +9,7 @@ edition = "2018"
 
 [dependencies]
 zip = "0.5.13"
-clap = "2.34.0"
+clap = "3.0.13"
 rand = "0.8.4"
 
 [profile.release]
