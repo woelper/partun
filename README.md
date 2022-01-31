@@ -12,20 +12,21 @@ Partun
 Extracts zip files partially
 
 USAGE:
-    partun [FLAGS] [OPTIONS] <ZIP>
-
-FLAGS:
-    -h, --help          Prints help information
-    -i, --ignorepath    Extract all files to current dir, ignoring all paths
-    -r, --random        Extract only a random file. This can be combined with the filter flag.
-    -V, --version       Prints version information
-
-OPTIONS:
-    -e, --exclude <exclude>    Do not extract file containing this string. Use commas for multiple exclusions.
-    -f, --filter <filter>      Only extract file containing this string
-    -o, --output <output>      extract files to this location
-        --rename <rename>      Rename EVERY file to this string. Useful in scripts with the random option
+    partun [OPTIONS] <ZIP>
 
 ARGS:
     <ZIP>    Sets the input file to use
+
+OPTIONS:
+    -e, --exclude <exclude>    Do not extract file containing this string. Use commas for multiple
+                               exclusions.
+    -f, --filter <filter>      Only extract file containing this string
+    -h, --help                 Print help information
+    -i, --ignorepath           Extract all files to current dir, ignoring all paths
+    -l, --list                 List files instead of extracting, one per line.
+    -o, --output <output>      extract files to this location
+    -r, --random               Extract only a random file. This can be combined with the filter
+                               flag.
+        --rename <rename>      Rename EVERY file to this string. Useful in scripts with the random
+                               option
 ```
