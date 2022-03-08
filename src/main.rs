@@ -6,7 +6,6 @@ use std::io;
 use std::path::PathBuf;
 
 fn main() {
-
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
@@ -52,7 +51,6 @@ fn main() {
          .short('r')
          .long("random")
          .help("Extract only a random file. This can be combined with the filter flag.")
-         .conflicts_with("list")
         )
     .arg(Arg::new("list")
          .short('l')
@@ -79,13 +77,6 @@ fn main() {
 
     let mut zip_archive = zip::ZipArchive::new(zipfile).unwrap();
 
-    if matches.is_present("list") {
-        for filename in zip_archive.file_names() {
-            println!("{}", filename)
-        }
-        return;
-    };
-
     let mut indices = (0..zip_archive.len())
         .into_iter()
         .filter(|i| {
@@ -95,7 +86,10 @@ fn main() {
                     true
                 } else {
                     // !zipfile.name().contains(exclude.unwrap_or_default())
-                    !exclude.unwrap_or_default().split(",").any(|e| zipfile.name().contains(e))
+                    !exclude
+                        .unwrap_or_default()
+                        .split(",")
+                        .any(|e| zipfile.name().contains(e))
                 }
             }
         })
@@ -119,6 +113,13 @@ fn main() {
 
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
+
+        // if list option is given, do not extract
+        if matches.is_present("list") {
+            println!("{}", file.name());
+            continue;
+        }
+
         let mut inflated_file = out_path.join(file.mangled_name());
 
         debug!("Base outpath: {}", inflated_file.display());
@@ -165,7 +166,6 @@ fn main() {
     }
 }
 
-
 #[test]
 fn extract() {
     use std::process::Command;
@@ -177,22 +177,40 @@ fn extract() {
         Command::new("touch").arg("ziptest/foo").status().unwrap();
         Command::new("touch").arg("ziptest/bar").status().unwrap();
         Command::new("touch").arg("ziptest/baz").status().unwrap();
-        Command::new("zip").args(&["-r", "ziptest.zip", "ziptest/"]).status().unwrap();
-        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("zip")
+            .args(&["-r", "ziptest.zip", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
 
-        Command::new("target/debug/partun").args(&["-r", "ziptest.zip"]).status().unwrap();
-        
-        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("target/debug/partun")
+            .args(&["-r", "ziptest.zip"])
+            .status()
+            .unwrap();
 
-        Command::new("target/debug/partun").args(&["-r", "-e", "foo,bar,baz", "ziptest.zip"]).status().unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
 
-        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
-        Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
+        Command::new("target/debug/partun")
+            .args(&["-r", "-e", "foo,bar,baz", "ziptest.zip"])
+            .status()
+            .unwrap();
 
-
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest.zip"])
+            .status()
+            .unwrap();
     }
 }
-
 
 #[test]
 fn t_output() {
@@ -205,17 +223,70 @@ fn t_output() {
         Command::new("touch").arg("ziptest/foo").status().unwrap();
         Command::new("touch").arg("ziptest/bar").status().unwrap();
         Command::new("touch").arg("ziptest/baz").status().unwrap();
-        Command::new("zip").args(&["-r", "ziptest.zip", "ziptest/"]).status().unwrap();
-        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("zip")
+            .args(&["-r", "ziptest.zip", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
 
-        Command::new("target/debug/partun").args(&["ziptest.zip", "-i", "-r", "--output", "/tmp/"]).status().unwrap();
-        
-        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
-        Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
+        Command::new("target/debug/partun")
+            .args(&["ziptest.zip", "-i", "-r", "--output", "/tmp/"])
+            .status()
+            .unwrap();
 
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest.zip"])
+            .status()
+            .unwrap();
 
         // Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+    }
+}
 
+#[test]
+fn t_list() {
+    use std::process::Command;
+    #[cfg(unix)]
+    {
+        // create some folders
+        Command::new("cargo").arg("build").status().unwrap();
+        Command::new("mkdir").arg("ziptest").status().unwrap();
+        Command::new("touch").arg("ziptest/foo").status().unwrap();
+        Command::new("touch").arg("ziptest/bar").status().unwrap();
+        Command::new("touch").arg("ziptest/baz").status().unwrap();
+        Command::new("zip")
+            .args(&["-r", "ziptest.zip", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
 
+        Command::new("target/debug/partun")
+            .args(&["ziptest.zip", "--list"])
+            .status()
+            .unwrap();
+
+        Command::new("target/debug/partun")
+            .args(&["ziptest.zip", "--list", "-r"])
+            .status()
+            .unwrap();
+
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest.zip"])
+            .status()
+            .unwrap();
     }
 }
