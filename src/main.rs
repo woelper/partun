@@ -1,10 +1,17 @@
 use clap::{App, Arg};
+use log::debug;
 use rand::seq::SliceRandom;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
 
 fn main() {
+
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
+    let _ = env_logger::try_init();
+
     let matches = App::new("Partun")
     .about("Extracts zip files partially")
     .arg(Arg::new("filter")
@@ -112,14 +119,16 @@ fn main() {
 
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
-        let mut outpath = out_path.join(file.mangled_name());
+        let mut inflated_file = out_path.join(file.mangled_name());
+
+        debug!("Base outpath: {}", inflated_file.display());
 
         // If ignorepath is set, turn the filename into the path
         if do_ignorepath {
-            if let Some(p) = outpath.file_name() {
-                outpath = PathBuf::from(p);
+            if let Some(p) = inflated_file.file_name() {
+                inflated_file = out_path.join(p);
             }
-            if outpath.is_dir() {
+            if inflated_file.is_dir() {
                 continue;
             }
             if (&*file.name()).ends_with('/') {
@@ -128,20 +137,20 @@ fn main() {
         }
 
         if (&*file.name()).ends_with('/') {
-            fs::create_dir_all(&outpath).unwrap();
+            fs::create_dir_all(&inflated_file).unwrap();
         } else {
-            if let Some(p) = outpath.parent() {
+            if let Some(p) = inflated_file.parent() {
                 if !p.exists() {
                     fs::create_dir_all(&p).unwrap();
                 }
             }
 
-            println!("{}", outpath.as_path().display());
+            println!("{}", inflated_file.as_path().display());
             if let Some(r) = rename {
-                outpath = PathBuf::from(r);
+                inflated_file = PathBuf::from(r);
             }
 
-            let mut outfile = fs::File::create(&outpath).unwrap();
+            let mut outfile = fs::File::create(&inflated_file).unwrap();
             io::copy(&mut file, &mut outfile).unwrap();
         }
 
@@ -150,7 +159,7 @@ fn main() {
         {
             use std::os::unix::fs::PermissionsExt;
             if let Some(mode) = file.unix_mode() {
-                fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
+                fs::set_permissions(&inflated_file, fs::Permissions::from_mode(mode)).unwrap();
             }
         }
     }
@@ -179,6 +188,33 @@ fn extract() {
 
         Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
         Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
+
+
+    }
+}
+
+
+#[test]
+fn t_output() {
+    use std::process::Command;
+    #[cfg(unix)]
+    {
+        // create some folders
+        Command::new("cargo").arg("build").status().unwrap();
+        Command::new("mkdir").arg("ziptest").status().unwrap();
+        Command::new("touch").arg("ziptest/foo").status().unwrap();
+        Command::new("touch").arg("ziptest/bar").status().unwrap();
+        Command::new("touch").arg("ziptest/baz").status().unwrap();
+        Command::new("zip").args(&["-r", "ziptest.zip", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+
+        Command::new("target/debug/partun").args(&["ziptest.zip", "-i", "-r", "--output", "/tmp/"]).status().unwrap();
+        
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
+
+
+        // Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
 
 
     }
