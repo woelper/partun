@@ -18,34 +18,29 @@ fn main() {
          .long("filter")
          .help("Only extract file containing this string")
          .takes_value(true)
-         .conflicts_with("list")
         )
     .arg(Arg::new("exclude")
          .short('e')
          .long("exclude")
          .help("Do not extract file containing this string. Use commas for multiple exclusions.")
          .takes_value(true)
-         .conflicts_with("list")
         )
     .arg(Arg::new("output")
          .short('o')
          .long("output")
          .help("extract files to this location")
          .takes_value(true)
-         .conflicts_with("list")
         )
     .arg(Arg::new("rename")
         //  .short("rn")
          .long("rename")
          .help("Rename EVERY file to this string. Useful in scripts with the random option")
          .takes_value(true)
-         .conflicts_with("list")
         )
     .arg(Arg::new("ignorepath")
          .short('i')
          .long("ignorepath")
          .help("Extract all files to current dir, ignoring all paths")
-         .conflicts_with("list")
         )
     .arg(Arg::new("random")
          .short('r')
@@ -114,12 +109,6 @@ fn main() {
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
 
-        // if list option is given, do not extract
-        if matches.is_present("list") {
-            println!("{}", file.name());
-            continue;
-        }
-
         let mut inflated_file = out_path.join(file.mangled_name());
 
         debug!("Base outpath: {}", inflated_file.display());
@@ -135,6 +124,12 @@ fn main() {
             if (&*file.name()).ends_with('/') {
                 continue;
             }
+        }
+
+        // if list option is given, do not extract
+        if matches.is_present("list") {
+            println!("{}", file.name());
+            continue;
         }
 
         if (&*file.name()).ends_with('/') {
