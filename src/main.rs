@@ -1,17 +1,18 @@
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use log::debug;
 use rand::seq::SliceRandom;
 use std::fs;
 use std::io;
+use std::io::{Write};
 use std::path::PathBuf;
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
     let _ = env_logger::try_init();
 
-    let matches = App::new("Partun")
+    let matches = Command::new("Partun")
     .about("Extracts zip files partially")
     .arg(Arg::new("filter")
          .short('f')
@@ -106,6 +107,7 @@ fn main() {
         }
     }
 
+    let mut stdout = io::stdout();
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
 
@@ -128,8 +130,17 @@ fn main() {
 
         // if list option is given, do not extract
         if matches.is_present("list") {
-            println!("{}", file.name());
-            continue;
+            let result = writeln!(&mut stdout, "{}", file.name());
+            match result {
+                Ok(_) => { continue }
+                Err(err) => {
+                    return if err.kind() == io::ErrorKind::BrokenPipe {
+                        Ok(())
+                    } else {
+                        Err(err)
+                    }
+                }
+            }
         }
 
         if (&*file.name()).ends_with('/') {
@@ -159,6 +170,7 @@ fn main() {
             }
         }
     }
+    return Ok(())
 }
 
 #[test]
