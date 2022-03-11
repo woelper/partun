@@ -130,17 +130,15 @@ fn main() -> Result<(), std::io::Error> {
 
         // if list option is given, do not extract
         if matches.is_present("list") {
-            let result = writeln!(&mut stdout, "{}", file.name());
-            match result {
-                Ok(_) => { continue }
-                Err(err) => {
-                    return if err.kind() == io::ErrorKind::BrokenPipe {
+            if let Err(err)  = writeln!(&mut stdout, "{}", file.name())
+            {
+                  return if err.kind() == io::ErrorKind::BrokenPipe {
                         Ok(())
                     } else {
                         Err(err)
                     }
-                }
             }
+            continue;
         }
 
         if (&*file.name()).ends_with('/') {
