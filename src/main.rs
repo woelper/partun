@@ -84,7 +84,7 @@ fn main() -> Result<(), std::io::Error> {
                     // !zipfile.name().contains(exclude.unwrap_or_default())
                     !exclude
                         .unwrap_or_default()
-                        .split(",")
+                        .split(',')
                         .any(|e| zipfile.name().contains(e))
                 }
             }
@@ -98,7 +98,7 @@ fn main() -> Result<(), std::io::Error> {
             .into_iter()
             .filter(|i| {
                 let zipfile = &zip_archive.by_index(*i).unwrap();
-                !zipfile.name().ends_with("/")
+                !zipfile.name().ends_with('/')
             })
             .collect();
         // select one of the indices - if there is any
@@ -168,7 +168,7 @@ fn main() -> Result<(), std::io::Error> {
             }
         }
     }
-    return Ok(())
+    Ok(())
 }
 
 #[test]
