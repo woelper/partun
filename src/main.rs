@@ -84,7 +84,7 @@ fn main() -> Result<(), std::io::Error> {
                     !exclude
                         .unwrap_or_default()
                         .split(',')
-                        .any(|e| zipfile.name().contains(e))
+                        .any(|e| zipfile.name().to_lowercase().contains(&e.to_lowercase()))
                 }
             }
         })
