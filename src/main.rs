@@ -77,11 +77,10 @@ fn main() -> Result<(), std::io::Error> {
         .into_iter()
         .filter(|i| {
             let zipfile = &zip_archive.by_index(*i).unwrap();
-            zipfile.name().contains(filter.unwrap_or_default()) && {
+            zipfile.name().to_lowercase().contains(&filter.unwrap_or_default().to_lowercase()) && {
                 if exclude.is_none() {
                     true
                 } else {
-                    // !zipfile.name().contains(exclude.unwrap_or_default())
                     !exclude
                         .unwrap_or_default()
                         .split(',')
