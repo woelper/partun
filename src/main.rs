@@ -1,52 +1,58 @@
-use clap::{Arg, Command};
+use clap::{App, Arg};
 use log::debug;
 use rand::seq::SliceRandom;
 use std::fs;
 use std::io;
-use std::io::{Write};
 use std::path::PathBuf;
 
-fn main() -> Result<(), std::io::Error> {
+fn main() {
+
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
     let _ = env_logger::try_init();
 
-    let matches = Command::new("Partun")
+    let matches = App::new("Partun")
     .about("Extracts zip files partially")
     .arg(Arg::new("filter")
          .short('f')
          .long("filter")
          .help("Only extract file containing this string")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::new("exclude")
          .short('e')
          .long("exclude")
          .help("Do not extract file containing this string. Use commas for multiple exclusions.")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::new("output")
          .short('o')
          .long("output")
          .help("extract files to this location")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::new("rename")
         //  .short("rn")
          .long("rename")
          .help("Rename EVERY file to this string. Useful in scripts with the random option")
          .takes_value(true)
+         .conflicts_with("list")
         )
     .arg(Arg::new("ignorepath")
          .short('i')
          .long("ignorepath")
          .help("Extract all files to current dir, ignoring all paths")
+         .conflicts_with("list")
         )
     .arg(Arg::new("random")
          .short('r')
          .long("random")
          .help("Extract only a random file. This can be combined with the filter flag.")
+         .conflicts_with("list")
         )
     .arg(Arg::new("list")
          .short('l')
@@ -73,18 +79,23 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut zip_archive = zip::ZipArchive::new(zipfile).unwrap();
 
+    if matches.is_present("list") {
+        for filename in zip_archive.file_names() {
+            println!("{}", filename)
+        }
+        return;
+    };
+
     let mut indices = (0..zip_archive.len())
         .into_iter()
         .filter(|i| {
             let zipfile = &zip_archive.by_index(*i).unwrap();
-            zipfile.name().to_lowercase().contains(&filter.unwrap_or_default().to_lowercase()) && {
+            zipfile.name().contains(filter.unwrap_or_default()) && {
                 if exclude.is_none() {
                     true
                 } else {
-                    !exclude
-                        .unwrap_or_default()
-                        .split(',')
-                        .any(|e| zipfile.name().to_lowercase().contains(&e.to_lowercase()))
+                    // !zipfile.name().contains(exclude.unwrap_or_default())
+                    !exclude.unwrap_or_default().split(",").any(|e| zipfile.name().contains(e))
                 }
             }
         })
@@ -97,7 +108,7 @@ fn main() -> Result<(), std::io::Error> {
             .into_iter()
             .filter(|i| {
                 let zipfile = &zip_archive.by_index(*i).unwrap();
-                !zipfile.name().ends_with('/')
+                !zipfile.name().ends_with("/")
             })
             .collect();
         // select one of the indices - if there is any
@@ -106,10 +117,8 @@ fn main() -> Result<(), std::io::Error> {
         }
     }
 
-    let mut stdout = io::stdout();
     for i in indices {
         let mut file = zip_archive.by_index(i).unwrap();
-
         let mut inflated_file = out_path.join(file.mangled_name());
 
         debug!("Base outpath: {}", inflated_file.display());
@@ -125,19 +134,6 @@ fn main() -> Result<(), std::io::Error> {
             if (&*file.name()).ends_with('/') {
                 continue;
             }
-        }
-
-        // if list option is given, do not extract
-        if matches.is_present("list") {
-            if let Err(err)  = writeln!(&mut stdout, "{}", file.name())
-            {
-                  return if err.kind() == io::ErrorKind::BrokenPipe {
-                        Ok(())
-                    } else {
-                        Err(err)
-                    }
-            }
-            continue;
         }
 
         if (&*file.name()).ends_with('/') {
@@ -167,8 +163,8 @@ fn main() -> Result<(), std::io::Error> {
             }
         }
     }
-    Ok(())
 }
+
 
 #[test]
 fn extract() {
@@ -181,40 +177,22 @@ fn extract() {
         Command::new("touch").arg("ziptest/foo").status().unwrap();
         Command::new("touch").arg("ziptest/bar").status().unwrap();
         Command::new("touch").arg("ziptest/baz").status().unwrap();
-        Command::new("zip")
-            .args(&["-r", "ziptest.zip", "ziptest/"])
-            .status()
-            .unwrap();
-        Command::new("rm")
-            .args(&["-rf", "ziptest/"])
-            .status()
-            .unwrap();
+        Command::new("zip").args(&["-r", "ziptest.zip", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
 
-        Command::new("target/debug/partun")
-            .args(&["-r", "ziptest.zip"])
-            .status()
-            .unwrap();
+        Command::new("target/debug/partun").args(&["-r", "ziptest.zip"]).status().unwrap();
+        
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
 
-        Command::new("rm")
-            .args(&["-rf", "ziptest/"])
-            .status()
-            .unwrap();
+        Command::new("target/debug/partun").args(&["-r", "-e", "foo,bar,baz", "ziptest.zip"]).status().unwrap();
 
-        Command::new("target/debug/partun")
-            .args(&["-r", "-e", "foo,bar,baz", "ziptest.zip"])
-            .status()
-            .unwrap();
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
 
-        Command::new("rm")
-            .args(&["-rf", "ziptest/"])
-            .status()
-            .unwrap();
-        Command::new("rm")
-            .args(&["-rf", "ziptest.zip"])
-            .status()
-            .unwrap();
+
     }
 }
+
 
 #[test]
 fn t_output() {
@@ -227,70 +205,17 @@ fn t_output() {
         Command::new("touch").arg("ziptest/foo").status().unwrap();
         Command::new("touch").arg("ziptest/bar").status().unwrap();
         Command::new("touch").arg("ziptest/baz").status().unwrap();
-        Command::new("zip")
-            .args(&["-r", "ziptest.zip", "ziptest/"])
-            .status()
-            .unwrap();
-        Command::new("rm")
-            .args(&["-rf", "ziptest/"])
-            .status()
-            .unwrap();
+        Command::new("zip").args(&["-r", "ziptest.zip", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
 
-        Command::new("target/debug/partun")
-            .args(&["ziptest.zip", "-i", "-r", "--output", "/tmp/"])
-            .status()
-            .unwrap();
+        Command::new("target/debug/partun").args(&["ziptest.zip", "-i", "-r", "--output", "/tmp/"]).status().unwrap();
+        
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
 
-        Command::new("rm")
-            .args(&["-rf", "ziptest/"])
-            .status()
-            .unwrap();
-        Command::new("rm")
-            .args(&["-rf", "ziptest.zip"])
-            .status()
-            .unwrap();
 
         // Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
-    }
-}
 
-#[test]
-fn t_list() {
-    use std::process::Command;
-    #[cfg(unix)]
-    {
-        // create some folders
-        Command::new("cargo").arg("build").status().unwrap();
-        Command::new("mkdir").arg("ziptest").status().unwrap();
-        Command::new("touch").arg("ziptest/foo").status().unwrap();
-        Command::new("touch").arg("ziptest/bar").status().unwrap();
-        Command::new("touch").arg("ziptest/baz").status().unwrap();
-        Command::new("zip")
-            .args(&["-r", "ziptest.zip", "ziptest/"])
-            .status()
-            .unwrap();
-        Command::new("rm")
-            .args(&["-rf", "ziptest/"])
-            .status()
-            .unwrap();
 
-        Command::new("target/debug/partun")
-            .args(&["ziptest.zip", "--list"])
-            .status()
-            .unwrap();
-
-        Command::new("target/debug/partun")
-            .args(&["ziptest.zip", "--list", "-r"])
-            .status()
-            .unwrap();
-
-        Command::new("rm")
-            .args(&["-rf", "ziptest/"])
-            .status()
-            .unwrap();
-        Command::new("rm")
-            .args(&["-rf", "ziptest.zip"])
-            .status()
-            .unwrap();
     }
 }
