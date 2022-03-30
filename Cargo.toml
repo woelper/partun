@@ -1,7 +1,7 @@
 cargo-features = ["strip"]
 [package]
 name = "partun"
-version = "0.1.17"
+version = "0.1.18"
 authors = ["Johann Woelper <woelper@gmail.com>"]
 edition = "2018"
 
