@@ -107,6 +107,18 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut stdout = io::stdout();
     for name in names.iter() {
+        // if list option is given, do not extract
+        if matches.is_present("list") {
+            if let Err(err) = writeln!(&mut stdout, "{}", name) {
+                return if err.kind() == io::ErrorKind::BrokenPipe {
+                    Ok(())
+                } else {
+                    Err(err)
+                };
+            }
+            continue;
+        }
+
         let mut file = zip_archive.by_name(name).unwrap();
 
         let mut inflated_file = out_path.join(file.mangled_name());
@@ -124,18 +136,6 @@ fn main() -> Result<(), std::io::Error> {
             if (&*file.name()).ends_with('/') {
                 continue;
             }
-        }
-
-        // if list option is given, do not extract
-        if matches.is_present("list") {
-            if let Err(err) = writeln!(&mut stdout, "{}", file.name()) {
-                return if err.kind() == io::ErrorKind::BrokenPipe {
-                    Ok(())
-                } else {
-                    Err(err)
-                };
-            }
-            continue;
         }
 
         if (&*file.name()).ends_with('/') {
@@ -175,10 +175,22 @@ fn extract() {
     {
         // create some folders
         Command::new("cargo").arg("build").status().unwrap();
-        Command::new("mkdir").arg("ziptest_extract").status().unwrap();
-        Command::new("touch").arg("ziptest_extract/foo").status().unwrap();
-        Command::new("touch").arg("ziptest_extract/bar").status().unwrap();
-        Command::new("touch").arg("ziptest_extract/baz").status().unwrap();
+        Command::new("mkdir")
+            .arg("ziptest_extract")
+            .status()
+            .unwrap();
+        Command::new("touch")
+            .arg("ziptest_extract/foo")
+            .status()
+            .unwrap();
+        Command::new("touch")
+            .arg("ziptest_extract/bar")
+            .status()
+            .unwrap();
+        Command::new("touch")
+            .arg("ziptest_extract/baz")
+            .status()
+            .unwrap();
         Command::new("zip")
             .args(&["-r", "ziptest_extract.zip", "ziptest_extract/"])
             .status()
@@ -260,9 +272,18 @@ fn t_list() {
         // create some folders
         Command::new("cargo").arg("build").status().unwrap();
         Command::new("mkdir").arg("ziptest_list").status().unwrap();
-        Command::new("touch").arg("ziptest_list/foo").status().unwrap();
-        Command::new("touch").arg("ziptest_list/bar").status().unwrap();
-        Command::new("touch").arg("ziptest_list/baz").status().unwrap();
+        Command::new("touch")
+            .arg("ziptest_list/foo")
+            .status()
+            .unwrap();
+        Command::new("touch")
+            .arg("ziptest_list/bar")
+            .status()
+            .unwrap();
+        Command::new("touch")
+            .arg("ziptest_list/baz")
+            .status()
+            .unwrap();
         Command::new("zip")
             .args(&["-r", "ziptest_list.zip", "ziptest_list/"])
             .status()
