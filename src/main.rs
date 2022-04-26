@@ -5,6 +5,7 @@ use rand::seq::SliceRandom;
 use std::fs;
 use std::io;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 
 fn main() -> Result<(), std::io::Error> {
@@ -120,7 +121,15 @@ fn main() -> Result<(), std::io::Error> {
     for name in names.iter() {
         // if list option is given, do not extract
         if matches.is_present("list") {
-            if let Err(err) = writeln!(&mut stdout, "{}", archive_path.join(name).display()) {
+            if let Err(err) = writeln!(
+                &mut stdout,
+                "{}",
+                archive_path
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .join(name)
+                    .display()
+            ) {
                 return if err.kind() == io::ErrorKind::BrokenPipe {
                     Ok(())
                 } else {
