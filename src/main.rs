@@ -1,8 +1,8 @@
 use clap::{Arg, Command};
 use log::debug;
-use log::info;
+// use log::info;
 use rand::seq::SliceRandom;
-use std::collections::HashSet;
+// use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::io::Write;
@@ -79,7 +79,7 @@ fn main() -> Result<(), std::io::Error> {
     let rename = matches.value_of("rename");
     let do_ignorepath = matches.is_present("ignorepath");
     let do_random = matches.is_present("random");
-    let do_skip_dupes = matches.is_present("skip-duplicates");
+    // let do_skip_dupes = matches.is_present("skip-duplicates");
     let out_path = PathBuf::from(matches.value_of("output").unwrap_or("."));
 
     let archive_path = std::path::Path::new(archive);
