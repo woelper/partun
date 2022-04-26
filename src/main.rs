@@ -4,6 +4,7 @@ use rand::seq::SliceRandom;
 use std::fs;
 use std::io;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 
 fn main() -> Result<(), std::io::Error> {
@@ -20,6 +21,11 @@ fn main() -> Result<(), std::io::Error> {
          .help("Only extract file containing this string")
          .takes_value(true)
         )
+    .arg(Arg::new("ext")
+        .long("ext")
+        .help("Only extract files with this extensions (e.g. gif)")
+        .takes_value(true)
+       )
     .arg(Arg::new("exclude")
          .short('e')
          .long("exclude")
@@ -62,6 +68,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let archive = matches.value_of("ZIP").unwrap();
     let filter = matches.value_of("filter");
+    let ext = matches.value_of("ext");
     let exclude = matches.value_of("exclude");
     let rename = matches.value_of("rename");
     let do_ignorepath = matches.is_present("ignorepath");
@@ -88,6 +95,14 @@ fn main() -> Result<(), std::io::Error> {
                             .any(|e| name.to_lowercase().contains(&e.to_lowercase()))
                     }
                 }
+        })
+        .filter(|name| {
+            match ext {
+                Some(ext) => {
+                    name.to_lowercase().ends_with(ext)
+                }
+                None => true
+            }
         })
         .map(|n| n.into())
         .collect::<Vec<String>>();
@@ -263,6 +278,39 @@ fn t_output() {
         // Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
     }
 }
+
+#[test]
+fn t_extension() {
+    use std::process::Command;
+    #[cfg(unix)]
+    {
+        // create some folders
+        Command::new("cargo").arg("build").status().unwrap();
+        Command::new("mkdir").arg("ziptest").status().unwrap();
+        Command::new("touch").arg("ziptest/foo.zip").status().unwrap();
+        Command::new("touch").arg("ziptest/bar.jpg").status().unwrap();
+        Command::new("touch").arg("ziptest/baz.bar").status().unwrap();
+        Command::new("zip")
+            .args(&["-r", "ziptest.zip", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
+
+        Command::new("target/debug/partun")
+            .args(&["ziptest.zip", "--ext", "jpg"])
+            .status()
+            .unwrap();
+
+        assert!(Path::new("ziptest/bar.jpg").exists());
+
+        Command::new("rm").args(&["-rf", "ziptest/"]).status().unwrap();
+        Command::new("rm").args(&["-rf", "ziptest.zip"]).status().unwrap();
+    }
+}
+
 
 #[test]
 fn t_list() {
