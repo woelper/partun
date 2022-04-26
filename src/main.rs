@@ -2,6 +2,7 @@ use clap::{Arg, Command};
 use log::debug;
 use log::info;
 use rand::seq::SliceRandom;
+use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::io::Write;
@@ -27,6 +28,10 @@ fn main() -> Result<(), std::io::Error> {
         .help("Only extract files with this extensions (e.g. gif)")
         .takes_value(true)
        )
+    .arg(Arg::new("skip-duplicates")
+       .long("skip-duplicates")
+       .help("Do not extract duplicate (CRC32) files")
+      )
     .arg(Arg::new("exclude")
          .short('e')
          .long("exclude")
@@ -74,6 +79,7 @@ fn main() -> Result<(), std::io::Error> {
     let rename = matches.value_of("rename");
     let do_ignorepath = matches.is_present("ignorepath");
     let do_random = matches.is_present("random");
+    let do_skip_dupes = matches.is_present("skip-duplicates");
     let out_path = PathBuf::from(matches.value_of("output").unwrap_or("."));
 
     let archive_path = std::path::Path::new(archive);
@@ -117,6 +123,8 @@ fn main() -> Result<(), std::io::Error> {
         }
     }
 
+    // let mut crcmap: HashSet<u32> = HashSet::default();
+
     let mut stdout = io::stdout();
     for name in names.iter() {
         // if list option is given, do not extract
@@ -139,9 +147,16 @@ fn main() -> Result<(), std::io::Error> {
             continue;
         }
 
-        let mut file = zip_archive.by_name(name).unwrap();
+        let mut zipfile = zip_archive.by_name(name).expect(&format!("Can't get zipfile index by name {name}"));
+        // let crc = zipfile.crc32();
+        // if crcmap.contains(&crc) && do_skip_dupes {
+        //     info!("Skipping {name}");
+        // } else {
+        //     crcmap.insert(crc);
+        // }
+        
 
-        let mut inflated_file = out_path.join(file.mangled_name());
+        let mut inflated_file = out_path.join(zipfile.mangled_name());
 
         debug!("Base outpath: {}", inflated_file.display());
 
@@ -153,12 +168,12 @@ fn main() -> Result<(), std::io::Error> {
             if inflated_file.is_dir() {
                 continue;
             }
-            if (&*file.name()).ends_with('/') {
+            if (&*zipfile.name()).ends_with('/') {
                 continue;
             }
         }
 
-        if (&*file.name()).ends_with('/') {
+        if (&*zipfile.name()).ends_with('/') {
             fs::create_dir_all(&inflated_file).unwrap();
         } else {
             if let Some(p) = inflated_file.parent() {
@@ -173,14 +188,14 @@ fn main() -> Result<(), std::io::Error> {
             }
 
             let mut outfile = fs::File::create(&inflated_file).unwrap();
-            io::copy(&mut file, &mut outfile).unwrap();
+            io::copy(&mut zipfile, &mut outfile).unwrap();
         }
 
         // Get and Set permissions
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            if let Some(mode) = file.unix_mode() {
+            if let Some(mode) = zipfile.unix_mode() {
                 fs::set_permissions(&inflated_file, fs::Permissions::from_mode(mode)).unwrap();
             }
         }
