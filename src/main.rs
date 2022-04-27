@@ -136,10 +136,24 @@ fn main() -> Result<(), std::io::Error> {
     }
 
     // let mut crcmap: HashSet<u32> = HashSet::default();
-    let mut name_map: HashSet<&str> = HashSet::default();
+    let mut name_map: HashSet<String> = HashSet::default();
 
     let mut stdout = io::stdout();
     for name in names.iter() {
+
+        if skip_dupe_filenames {
+            if let Some(filename) = Path::new(name).file_name() {
+                let string_name = filename.to_string_lossy().to_string();
+                // info!("{string_name}");
+                if name_map.contains(&string_name) {
+                    debug!("Skipping {name}");
+                    continue;
+                } else {
+                    name_map.insert(string_name);
+                }
+            }
+        }
+
         // if list option is given, do not extract
         if matches.is_present("list") {
             // if archive name should be included, do nothing, else use parent
@@ -167,12 +181,9 @@ fn main() -> Result<(), std::io::Error> {
         //     crcmap.insert(crc);
         // }
 
-        if name_map.contains(name.as_str()) && skip_dupe_filenames {
-            debug!("Skipping {name}");
-            continue;
-        } else {
-            name_map.insert(&name);
-        }
+
+
+  
 
         let mut inflated_file = out_path.join(zipfile.mangled_name());
 
@@ -298,7 +309,6 @@ fn t_output() {
             .args(&["-rf", "ziptest/"])
             .status()
             .unwrap();
-
         Command::new("target/debug/partun")
             .args(&["ziptest.zip", "-i", "-r", "--output", "/tmp/"])
             .status()
@@ -346,14 +356,11 @@ fn t_extension() {
             .args(&["-rf", "ziptest/"])
             .status()
             .unwrap();
-
         Command::new("target/debug/partun")
             .args(&["ziptest.zip", "--ext", "jpg"])
             .status()
             .unwrap();
-
         assert!(Path::new("ziptest/bar.jpg").exists());
-
         Command::new("rm")
             .args(&["-rf", "ziptest/"])
             .status()
@@ -393,12 +400,62 @@ fn t_abs() {
             .args(&["-rf", "ziptest/"])
             .status()
             .unwrap();
-
         Command::new("target/debug/partun")
             .args(&["/home/woelper/repos/partun/ziptest.zip", "-l"])
             .status()
             .unwrap();
+        Command::new("target/debug/partun")
+            .args(&[
+                "/home/woelper/repos/partun/ziptest.zip",
+                "-l",
+                "--include-archive-name",
+            ])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest.zip"])
+            .status()
+            .unwrap();
+    }
+}
 
+#[test]
+fn t_dupe() {
+    use std::process::Command;
+    #[cfg(unix)]
+    {
+        // create some folders
+        Command::new("cargo").arg("build").status().unwrap();
+        Command::new("mkdir").arg("ziptest").status().unwrap();
+        Command::new("mkdir").arg("ziptest/foo").status().unwrap();
+        Command::new("touch")
+            .arg("ziptest/foo/bar.jpg")
+            .status()
+            .unwrap();
+        Command::new("touch")
+            .arg("ziptest/bar.jpg")
+            .status()
+            .unwrap();
+        Command::new("zip")
+            .args(&["-r", "ziptest.zip", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("rm")
+            .args(&["-rf", "ziptest/"])
+            .status()
+            .unwrap();
+        Command::new("target/debug/partun")
+            .args(&[
+                "/home/woelper/repos/partun/ziptest.zip",
+                "-l",
+                "--skip-duplicate-filenames",
+            ])
+            .status()
+            .unwrap();
         Command::new("rm")
             .args(&["-rf", "ziptest/"])
             .status()
@@ -438,17 +495,14 @@ fn t_list() {
             .args(&["-rf", "ziptest_list/"])
             .status()
             .unwrap();
-
         Command::new("target/debug/partun")
             .args(&["ziptest_list.zip", "--list"])
             .status()
             .unwrap();
-
         Command::new("target/debug/partun")
             .args(&["ziptest_list.zip", "--list", "-r"])
             .status()
             .unwrap();
-
         Command::new("rm")
             .args(&["-rf", "ziptest_list/"])
             .status()

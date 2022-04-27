@@ -25,6 +25,7 @@ OPTIONS:
     -f, --filter <filter>             Only extract file containing this string
     -h, --help                        Print help information
     -i, --ignorepath                  Extract all files to current dir, ignoring all paths
+        --include-archive-name        When listing, include the archive name in path
     -l, --list                        List files instead of extracting, one per line. Filtes apply.
     -o, --output <output>             extract files to this location
     -r, --random                      Extract only a random file. This can be combined with the
