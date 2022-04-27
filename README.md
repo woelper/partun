@@ -15,19 +15,22 @@ USAGE:
     partun [OPTIONS] <ZIP>
 
 ARGS:
-    <ZIP>    Sets the input file to use
+    <ZIP>    Sets the input archive
 
 OPTIONS:
-    -e, --exclude <exclude>    Do not extract file containing this string. Use commas for multiple
-                               exclusions.
-        --ext <ext>            Only extract files with this extensions (e.g. gif)
-    -f, --filter <filter>      Only extract file containing this string
-    -h, --help                 Print help information
-    -i, --ignorepath           Extract all files to current dir, ignoring all paths
-    -l, --list                 List files instead of extracting, one per line.
-    -o, --output <output>      extract files to this location
-    -r, --random               Extract only a random file. This can be combined with the filter
-                               flag.
-        --rename <rename>      Rename EVERY file to this string. Useful in scripts with the random
-                               option
+        --debug                       Toggle debug output
+    -e, --exclude <exclude>           Do not extract file containing this string. Use commas for
+                                      multiple exclusions.
+        --ext <ext>                   Only extract files with this extensions (e.g. gif)
+    -f, --filter <filter>             Only extract file containing this string
+    -h, --help                        Print help information
+    -i, --ignorepath                  Extract all files to current dir, ignoring all paths
+    -l, --list                        List files instead of extracting, one per line. Filtes apply.
+    -o, --output <output>             extract files to this location
+    -r, --random                      Extract only a random file. This can be combined with the
+                                      filter flag.
+        --rename <rename>             Rename EVERY file to this string. Useful in scripts with the
+                                      random option
+        --skip-duplicate-filenames    Do not extract duplicate file names
+
 ```
