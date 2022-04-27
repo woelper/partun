@@ -1,8 +1,9 @@
 use clap::{Arg, Command};
 use log::debug;
+use log::info;
 // use log::info;
 use rand::seq::SliceRandom;
-// use std::collections::HashSet;
+use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::io::Write;
@@ -10,11 +11,6 @@ use std::path::Path;
 use std::path::PathBuf;
 
 fn main() -> Result<(), std::io::Error> {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info");
-    }
-    let _ = env_logger::try_init();
-
     let matches = Command::new("Partun")
     .about("Extracts zip files partially")
     .arg(Arg::new("filter")
@@ -28,9 +24,9 @@ fn main() -> Result<(), std::io::Error> {
         .help("Only extract files with this extensions (e.g. gif)")
         .takes_value(true)
        )
-    .arg(Arg::new("skip-duplicates")
-       .long("skip-duplicates")
-       .help("Do not extract duplicate (CRC32) files")
+    .arg(Arg::new("skip-duplicate-filenames")
+       .long("skip-duplicate-filenames")
+       .help("Do not extract duplicate file names")
       )
     .arg(Arg::new("exclude")
          .short('e')
@@ -45,7 +41,6 @@ fn main() -> Result<(), std::io::Error> {
          .takes_value(true)
         )
     .arg(Arg::new("rename")
-        //  .short("rn")
          .long("rename")
          .help("Rename EVERY file to this string. Useful in scripts with the random option")
          .takes_value(true)
@@ -63,14 +58,30 @@ fn main() -> Result<(), std::io::Error> {
     .arg(Arg::new("list")
          .short('l')
          .long("list")
-         .help("List files instead of extracting, one per line.")
+         .help("List files instead of extracting, one per line. Filtes apply.")
         )
+    .arg(Arg::new("include-archive-name")
+        .long("include-archive-name")
+        .help("When listing, include the archive name in path")
+       )
+    .arg(Arg::new("debug")
+        .long("debug")
+        .help("Toggle debug output")
+       )
     .arg(Arg::new("ZIP")
-         .help("Sets the input file to use")
+         .help("Sets the input archive")
          .required(true)
          .index(1)
         )
     .get_matches();
+
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
+    if matches.is_present("debug") {
+        std::env::set_var("RUST_LOG", "debug");
+    }
+    let _ = env_logger::try_init();
 
     let archive = matches.value_of("ZIP").expect("must supply archive");
     let filter = matches.value_of("filter");
@@ -79,7 +90,8 @@ fn main() -> Result<(), std::io::Error> {
     let rename = matches.value_of("rename");
     let do_ignorepath = matches.is_present("ignorepath");
     let do_random = matches.is_present("random");
-    // let do_skip_dupes = matches.is_present("skip-duplicates");
+    let do_include_archive_name = matches.is_present("include-archive-name");
+    let skip_dupe_filenames = matches.is_present("skip-duplicate-filenames");
     let out_path = PathBuf::from(matches.value_of("output").unwrap_or("."));
 
     let archive_path = std::path::Path::new(archive);
@@ -124,20 +136,18 @@ fn main() -> Result<(), std::io::Error> {
     }
 
     // let mut crcmap: HashSet<u32> = HashSet::default();
+    let mut name_map: HashSet<&str> = HashSet::default();
 
     let mut stdout = io::stdout();
     for name in names.iter() {
         // if list option is given, do not extract
         if matches.is_present("list") {
-            if let Err(err) = writeln!(
-                &mut stdout,
-                "{}",
-                archive_path
-                    .parent()
-                    .unwrap_or(Path::new("."))
-                    .join(name)
-                    .display()
-            ) {
+            // if archive name should be included, do nothing, else use parent
+            let archive_path = match do_include_archive_name {
+                true => archive_path,
+                false => archive_path.parent().unwrap_or(Path::new(".")),
+            };
+            if let Err(err) = writeln!(&mut stdout, "{}", archive_path.join(name).display()) {
                 return if err.kind() == io::ErrorKind::BrokenPipe {
                     Ok(())
                 } else {
@@ -147,14 +157,22 @@ fn main() -> Result<(), std::io::Error> {
             continue;
         }
 
-        let mut zipfile = zip_archive.by_name(name).expect(&format!("Can't get zipfile index by name {name}"));
+        let mut zipfile = zip_archive
+            .by_name(name)
+            .expect(&format!("Can't get zipfile index by name {name}"));
         // let crc = zipfile.crc32();
         // if crcmap.contains(&crc) && do_skip_dupes {
         //     info!("Skipping {name}");
         // } else {
         //     crcmap.insert(crc);
         // }
-        
+
+        if name_map.contains(name.as_str()) && skip_dupe_filenames {
+            debug!("Skipping {name}");
+            continue;
+        } else {
+            name_map.insert(&name);
+        }
 
         let mut inflated_file = out_path.join(zipfile.mangled_name());
 
