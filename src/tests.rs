@@ -1,4 +1,3 @@
-
 #[test]
 fn extract() {
     use std::process::Command;
@@ -112,6 +111,10 @@ fn t_extension() {
             .status()
             .unwrap();
         Command::new("touch")
+            .arg("ziptest/bar.bmp")
+            .status()
+            .unwrap();
+        Command::new("touch")
             .arg("ziptest/baz.bar")
             .status()
             .unwrap();
@@ -128,6 +131,13 @@ fn t_extension() {
             .status()
             .unwrap();
         assert!(Path::new("ziptest/bar.jpg").exists());
+        println!("Multiple extensions");
+        Command::new("target/debug/partun")
+            .args(&["ziptest.zip", "--ext", "jpg,bmp"])
+            .status()
+            .unwrap();
+        assert!(Path::new("ziptest/bar.jpg").exists());
+        assert!(Path::new("ziptest/bar.bmp").exists());
         Command::new("rm")
             .args(&["-rf", "ziptest/"])
             .status()
@@ -281,10 +291,8 @@ fn t_list() {
     }
 }
 
-
-
 #[test]
-fn t_archives() {
+fn t_exts() {
     use std::process::Command;
     #[cfg(unix)]
     {

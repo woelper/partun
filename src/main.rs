@@ -11,7 +11,6 @@ use std::path::Path;
 use std::path::PathBuf;
 mod tests;
 
-
 fn main() -> Result<(), std::io::Error> {
     let matches = Command::new("Partun")
     .about("Extracts zip files partially")
@@ -23,7 +22,7 @@ fn main() -> Result<(), std::io::Error> {
         )
     .arg(Arg::new("ext")
         .long("ext")
-        .help("Only extract files with this extensions (e.g. gif)")
+        .help("Only extract files with this extension (e.g. gif). Use commas for multiple exclusions.")
         .takes_value(true)
        )
     .arg(Arg::new("skip-duplicate-filenames")
@@ -112,13 +111,18 @@ fn main() -> Result<(), std::io::Error> {
                     } else {
                         !exclude
                             .unwrap_or_default()
+                            .replace(" ", "")
                             .split(',')
                             .any(|e| name.to_lowercase().contains(&e.to_lowercase()))
                     }
                 }
         })
         .filter(|name| match ext {
-            Some(ext) => name.to_lowercase().ends_with(ext),
+            // Some(ext) => name.to_lowercase().ends_with(ext),
+            Some(ext) => ext
+                .replace(" ", "")
+                .split(',')
+                .any(|e| name.to_lowercase().ends_with(&e.to_lowercase())),
             None => true,
         })
         .map(|n| n.into())
@@ -142,7 +146,6 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut stdout = io::stdout();
     for name in names.iter() {
-
         if skip_dupe_filenames {
             if let Some(filename) = Path::new(name).file_name() {
                 let string_name = filename.to_string_lossy().to_string();
@@ -182,10 +185,6 @@ fn main() -> Result<(), std::io::Error> {
         // } else {
         //     crcmap.insert(crc);
         // }
-
-
-
-  
 
         let mut inflated_file = out_path.join(zipfile.mangled_name());
 

@@ -21,7 +21,8 @@ OPTIONS:
         --debug                       Toggle debug output
     -e, --exclude <exclude>           Do not extract file containing this string. Use commas for
                                       multiple exclusions.
-        --ext <ext>                   Only extract files with this extensions (e.g. gif)
+        --ext <ext>                   Only extract files with this extensions (e.g. gif). Use commas
+                                      for multiple exclusions.
     -f, --filter <filter>             Only extract file containing this string
     -h, --help                        Print help information
     -i, --ignorepath                  Extract all files to current dir, ignoring all paths
