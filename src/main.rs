@@ -242,19 +242,15 @@ fn main() -> Result<(), std::io::Error> {
                     }
                 }
             }
-            Ok(())
         },
         "7z" => {
             // New 7z logic using sevenz-rust
-            sevenz_rust::decompress_file(archive, "./output_directory/").expect("Decompression failed");
+            sevenz_rust::decompress_file(archive, &out_path.display().to_string()).expect("Decompression failed");
         },
         _ => {
             eprintln!("Unsupported archive type: {}", archive_type);
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unsupported archive type"));
         }
     }
-
-    Ok(())
 }
 
 
