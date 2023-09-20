@@ -1,6 +1,7 @@
-use clap::{Arg, Command};
+use clap::{Arg, App};
 use log::debug;
 use log::info;
+use sevenzip::Archive;
 // use log::info;
 use rand::seq::SliceRandom;
 use std::collections::HashSet;
@@ -12,8 +13,8 @@ use std::path::PathBuf;
 mod tests;
 
 fn main() -> Result<(), std::io::Error> {
-    let matches = Command::new("Partun")
-    .about("Extracts zip files partially")
+    let matches = App::new("Partun")
+    .about("Extracts zip or 7z files partially")
     .arg(Arg::new("filter")
          .short('f')
          .long("filter")
@@ -74,6 +75,14 @@ fn main() -> Result<(), std::io::Error> {
          .required(true)
          .index(1)
         )
+    .arg(Arg::new("type")
+         .short('t')
+         .long("type")
+         .help("Specify the archive type: zip or 7z")
+         .takes_value(true)
+         .default_value("zip")
+        )
+    .get_matches();
     .get_matches();
 
     if std::env::var("RUST_LOG").is_err() {
@@ -186,7 +195,7 @@ fn main() -> Result<(), std::io::Error> {
         //     crcmap.insert(crc);
         // }
 
-        let mut inflated_file = out_path.join(zipfile.mangled_name());
+        let mut inflated_file = out_path.join(zipfile.mangled_name())
 
         debug!("Base outpath: {}", inflated_file.display());
 
@@ -230,5 +239,26 @@ fn main() -> Result<(), std::io::Error> {
             }
         }
     }
+
+    let archive_type = matches.value_of("type").unwrap();
+    match archive_type {
+        "zip" => {
+            // Existing ZIP logic
+        },
+        "7z" => {
+            // New 7z logic using sevenzip-rs
+            let archive_path = std::path::Path::new(archive);
+            let mut archive = Archive::open(archive_path).unwrap();
+            let items = archive.list().unwrap();
+            for item in items {
+                // Extract or list items based on user's command-line arguments
+            }
+        },
+        _ => {
+            eprintln!("Unsupported archive type: {}", archive_type);
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Unsupported archive type"));
+        }
+    }
+
     Ok(())
 }
