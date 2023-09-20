@@ -1,7 +1,7 @@
 use clap::{Arg, App};
 use log::debug;
 use log::info;
-use sevenzipx::{list_7z_contents, extract_7z_contents_to};
+use sevenz_rust;
 // use log::info;
 use rand::seq::SliceRandom;
 use std::collections::HashSet;
@@ -245,12 +245,8 @@ fn main() -> Result<(), std::io::Error> {
             Ok(())
         },
         "7z" => {
-            // New 7z logic using sevenzipx
-            let contents = list_7z_contents(archive).unwrap();
-            for file in contents {
-                // Handle the file entries as needed
-            }
-            extract_7z_contents_to(archive, "./output_directory/").unwrap();  // Replace "./output_directory/" with the desired output directory
+            // New 7z logic using sevenz-rust
+            sevenz_rust::decompress_file(archive, "./output_directory/").expect("Decompression failed");
         },
         _ => {
             eprintln!("Unsupported archive type: {}", archive_type);
@@ -260,3 +256,5 @@ fn main() -> Result<(), std::io::Error> {
 
     Ok(())
 }
+
+
