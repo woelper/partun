@@ -1,7 +1,7 @@
 use clap::{Arg, App};
 use log::debug;
 use log::info;
-use sevenzip::Archive;
+use sevenzipx::{list_7z_contents, extract_7z_contents_to};
 // use log::info;
 use rand::seq::SliceRandom;
 use std::collections::HashSet;
@@ -82,7 +82,6 @@ fn main() -> Result<(), std::io::Error> {
          .takes_value(true)
          .default_value("zip")
         )
-    .get_matches();
     .get_matches();
 
     if std::env::var("RUST_LOG").is_err() {
@@ -239,20 +238,18 @@ fn main() -> Result<(), std::io::Error> {
             }
         }
     }
-
     let archive_type = matches.value_of("type").unwrap();
     match archive_type {
         "zip" => {
             // Existing ZIP logic
         },
         "7z" => {
-            // New 7z logic using sevenzip-rs
-            let archive_path = std::path::Path::new(archive);
-            let mut archive = Archive::open(archive_path).unwrap();
-            let items = archive.list().unwrap();
-            for item in items {
-                // Extract or list items based on user's command-line arguments
+            // New 7z logic using sevenzipx
+            let contents = list_7z_contents(archive).unwrap();
+            for file in contents {
+                // Handle the file entries as needed
             }
+            extract_7z_contents_to(archive, "./output_directory/").unwrap();  // Replace "./output_directory/" with the desired output directory
         },
         _ => {
             eprintln!("Unsupported archive type: {}", archive_type);
