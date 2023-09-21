@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-latest, macOS-latest]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
         rust: [stable]
     steps:
     - uses: actions/checkout@v2
@@ -50,17 +50,17 @@ jobs:
 
     - name: Install cargo cross
       run: cargo install cross
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-latest'
 
     - name: Cross-compile arm
       run: cross build --target armv7-unknown-linux-musleabihf --release
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-latest'
   
     - name: Build Application
       run: cargo build --release
 
     - name: Upload ARM Release
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-latest'
       id: upload-release-asset-arm 
       uses: actions/upload-release-asset@v1
       env:
@@ -72,7 +72,7 @@ jobs:
         asset_content_type: application/zip
 
     - name: Upload Linux Release
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-latest'
       id: upload-release-asset-lin 
       uses: actions/upload-release-asset@v1
       env:
@@ -110,7 +110,7 @@ jobs:
   publish_release:
     name: Publish release
     needs: [build_job, release_job]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
     - name: Test id
       run: echo "${{ needs.release_job.outputs.release_id }}"
